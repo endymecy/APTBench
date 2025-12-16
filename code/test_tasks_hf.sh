@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 model=$1
 # 定义datasets列表
-datasets=("env_setup" "deepresearch" "issue_fix")
+datasets=("env_setup" "deepresearch" "issue_fix" "tool" "agentic_math")
 
 # 外层循环：遍历datasets
 for dataset in "${datasets[@]}"; do    
@@ -15,7 +15,13 @@ for dataset in "${datasets[@]}"; do
             tasks=("plan_en" "plan_zh" "summ_ans_en" "summ_ans_zh" "openend_plan_en" "openend_citation_en" "openend_citation_zh" "openend_quality_en" "openend_quality_zh")
             ;;
         "issue_fix")
-            tasks=("locate" "fix_patch" "plan" "action" "test_patch")
+            tasks=("locate" "fix_patch" "plan" "tool_call" "test_patch")
+            ;;
+        "tool")
+            tasks=("acebench_api_select" "acebench_api_param" "bfcl_v4_api_select" "bfcl_v4_api_param")
+            ;;
+        "agentic_math")
+            tasks=("planning_single" "feedback_tf" "action_cal")
             ;;
         *)
             echo "未知的dataset: $dataset"
@@ -39,7 +45,13 @@ for dataset in "${datasets[@]}"; do
             tasks=("plan_en" "plan_zh" "summ_ans_en" "summ_ans_zh" "openend_plan_en" "openend_citation_en" "openend_citation_zh" "openend_quality_en" "openend_quality_zh")
             ;;
         "issue_fix")
-            tasks=("locate" "fix_patch" "plan" "action" "test_patch")
+            tasks=("locate" "fix_patch" "plan" "tool_call" "test_patch")
+            ;;
+        "tool")
+            tasks=("acebench_api_select" "acebench_api_param" "bfcl_v4_api_select" "bfcl_v4_api_param")
+            ;;
+        "agentic_math")
+            tasks=("planning_single" "feedback_tf" "action_cal")
             ;;
         *)
             echo "未知的dataset: $dataset"

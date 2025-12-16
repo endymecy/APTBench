@@ -30,6 +30,11 @@ def load_prompt_template(path):
         print(f"错误: Prompt模板文件 '{path}' 未找到。程序将退出。")
         exit(1)
 
+# agentic math
+template_3shot_math_planning_single = load_prompt_template('prompts/math_planning_single_3shot.txt')
+template_math_feedback_tf = load_prompt_template('prompts/math_feedback_tf.txt')
+template_math_action_cal = load_prompt_template('prompts/math_action_calculation.txt')
+
 # swe: env_setup
 template_3shot_env_setup_plan = load_prompt_template('prompts/env_setup_plan_3shot.txt')
 template_3shot_env_setup_action = load_prompt_template('prompts/env_setup_action_3shot.txt')
@@ -54,6 +59,12 @@ template_3shot_deepresearch_openend_citation_en = load_prompt_template('prompts/
 template_3shot_deepresearch_openend_citation_zh = load_prompt_template('prompts/deepresearch_openend_citation_zh_3shot.txt')
 template_2shot_deepresearch_openend_quality_en = load_prompt_template('prompts/deepresearch_openend_quality_en_2shot.txt')
 template_2shot_deepresearch_openend_quality_zh = load_prompt_template('prompts/deepresearch_openend_quality_zh_2shot.txt')
+
+# tool: acebench & bfcl_v4
+template_3shot_tool_acebench_api_select = load_prompt_template('prompts/tool_acebench_api_select_3shot.txt')
+template_3shot_tool_acebench_api_param = load_prompt_template('prompts/tool_acebench_api_param_3shot.txt')
+template_3shot_tool_bfcl_v4_api_select = load_prompt_template('prompts/tool_bfcl_v4_api_select_3shot.txt')
+template_3shot_tool_bfcl_v4_api_param = load_prompt_template('prompts/tool_bfcl_v4_api_param_3shot.txt')
 
 
 def truncate_prompt(prompt, tokenizer, max_len=120000):
@@ -167,6 +178,31 @@ def extract_answer_cite(response):
         return response.split(pattern)[0]
     return None
 
+def extract_answer_choice_AE(response):
+    """提取mcq类型的答案 (A-E字母)"""
+    response = response.replace('*', '')
+    match = re.search(r'\b([A-E])[\)\n\s:]', response, re.IGNORECASE)
+    if match:
+        return match.group(1).upper()
+    match = re.search(r'\b([A-E])\s*$', response, re.IGNORECASE)
+    return match.group(1).upper() if match else None
+
+def extract_answer_choice_AD(response):
+    """提取mcq类型的答案 (A-D字母)"""
+    response = response.replace('*', '')
+    match = re.search(r'\b([A-D])[\)\n\s:]', response, re.IGNORECASE)
+    if match:
+        return match.group(1).upper()
+    match = re.search(r'\b([A-D])\s*$', response, re.IGNORECASE)
+    return match.group(1).upper() if match else None
+
+def extract_answer_true_false(response):
+    """提取correct/wrong类型的答案"""
+    response = response.lower().replace('*', '')
+    match = re.search(r'\b(correct|wrong)\b', response)
+    return match.group(1) if match else None
+
+
 
 # --- 任务配置字典 ---
 # 结构:
@@ -179,6 +215,30 @@ def extract_answer_cite(response):
 #     "judge_logic": (预测值, 答案) -> bool, 用于判断对错的逻辑
 # }
 TASK_CONFIG = {
+    ('agentic_math', 'planning_single'): {
+        "template": template_3shot_math_planning_single,
+        "prompt_fields": {"$REPO_INFO$": "repo_info", "$CHOICES$": "choices"},
+        "max_new_tokens": 10,
+        "extraction_func": extract_answer_choice_AE,
+        "answer_key": "answer",
+        "judge_logic": lambda pred, ans: pred == ans
+    },
+    ('agentic_math', 'feedback_tf'): {
+        "template": template_math_feedback_tf,
+        "prompt_fields": {"$REPO_INFO$": "repo_info", "$CHOICES$": "choices"},
+        "max_new_tokens": 10,
+        "extraction_func": extract_answer_true_false,
+        "answer_key": "answer",
+        "judge_logic": lambda pred, ans: pred == ans
+    },
+    ('agentic_math', 'action_cal'): {
+        "template": template_math_action_cal,
+        "prompt_fields": {"$REPO_INFO$": "repo_info", "$CHOICES$": "choices"},
+        "max_new_tokens": 10,
+        "extraction_func": extract_answer_choice_AD,
+        "answer_key": "answer",
+        "judge_logic": lambda pred, ans: pred == ans
+    },
     ('env_setup', 'plan'): {
         "template": template_3shot_env_setup_plan,
         "prompt_fields": {"$REPO_INFO$": "repo_info", "$CHOICES$": "choices"},
@@ -313,6 +373,38 @@ TASK_CONFIG = {
         "max_new_tokens": 10,
         "extraction_func": extract_answer,
         "answer_key": "answer",
+        "judge_logic": lambda pred, ans: pred == ans
+    },
+    ('tool', 'acebench_api_select'): {
+        "template": template_3shot_tool_acebench_api_select,
+        "prompt_fields": {"$USER_PROMPT$": "user_prompt", "$FUNCS$": "function"},
+        "max_new_tokens": 30,
+        "extraction_func": extract_answer_action,
+        "answer_key": "answer4select",
+        "judge_logic": lambda pred, ans: pred == ans
+    },
+    ('tool', 'acebench_api_param'): {
+        "template": template_3shot_tool_acebench_api_param,
+        "prompt_fields": {"$USER_PROMPT$": "user_prompt", "$FUNCS$": "function", "$ANSWER_SELECT$": "answer4select", "$PARA_NAME$": "param_name"},
+        "max_new_tokens": 30,
+        "extraction_func": extract_answer_action,
+        "answer_key": "answer4param",
+        "judge_logic": lambda pred, ans: pred == ans
+    },
+    ('tool', 'bfcl_v4_api_select'): {
+        "template": template_3shot_tool_bfcl_v4_api_select,
+        "prompt_fields": {"$USER_PROMPT$": "user_prompt", "$FUNCS$": "function"},
+        "max_new_tokens": 30,
+        "extraction_func": extract_answer_action,
+        "answer_key": "answer4select",
+        "judge_logic": lambda pred, ans: pred == ans
+    },
+    ('tool', 'bfcl_v4_api_param'): {
+        "template": template_3shot_tool_bfcl_v4_api_param,
+        "prompt_fields": {"$USER_PROMPT$": "user_prompt", "$FUNCS$": "function", "$ANSWER_SELECT$": "answer4select", "$PARA_NAME$": "param_name"},
+        "max_new_tokens": 30,
+        "extraction_func": extract_answer_action,
+        "answer_key": "answer4param",
         "judge_logic": lambda pred, ans: pred == ans
     }
 }
